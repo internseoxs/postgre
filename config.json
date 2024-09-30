@@ -1,0 +1,10 @@
+{
+  "openai_api_key": "sk-z11R5UhP9Yt_zN01s6HHtZKruuuMsj5MsAPVjQdS5sT3BlbkFJCOc_EGUS-hGaPzQtHFNAV6-3sspHHeZasIRKdSOQcA",
+  "database": {
+    "host": "localhost",
+    "dbname": "sabre_sept_db1",
+    "user": "test",
+    "password": "test",
+    "port": 5432
+  }
+}

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat with GPT and Database</title>
+    <style>
+        /* Universal reset for better cross-browser consistency */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-image: url('https://images.pexels.com/photos/28510888/pexels-photo-28510888.jpeg?auto=compress&cs=tinysrgb&w=600&lazy=load');
+            background-repeat:no-repeat;
+            background-size:70%;
+            background-position:center;
+            background-color: transparent;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        header {
+            background-color: #8a4991;
+            color: white;
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 10px; /* Added margin for spacing */
+        }
+
+        nav {
+            margin: 10px 0;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 1.1rem;
+            transition: color 0.3s ease;
+        }
+
+        nav a:hover {
+            color: #005fa3;
+        }
+
+        .container {
+            width: 80%;
+            margin: 80px auto 0; /* Adds top margin to accommodate fixed header */
+            padding: 20px;
+            margin-top: 160px;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            color: #8a4991;
+            margin-bottom: 10px;
+        }
+
+        p {
+            margin-bottom: 20px;
+            color: #666;
+        }
+
+        textarea {
+            background-color:rgba(255,255,255,0.5);
+            width: 100%;
+            padding: 15px;
+            font-size: 1rem;
+            border-radius: 8px;
+            border: 1px solid #dcdcdc;
+            margin-bottom: 15px;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+            transition: all 0.2s ease;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color:#8a4991;
+            box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            background-color: #8a4991;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 180px;
+        }
+
+        button:hover {
+            color:black;
+            background-color:rgba(255,255,255,0.5);
+            box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        #sbt {
+            margin-bottom: 15px;
+        }
+
+        #response {
+            margin-top: 30px;
+            white-space: pre-wrap;
+            background-color:rgba(255,255,255,0.5);
+            border: 1px solid #e1e6f0;
+            padding: 20px;
+            border-radius: 10px;
+            color: #444;
+            font-family: 'Courier New', Courier, monospace;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+
+        #previous-responses {
+            margin-top: 40px;
+        }
+
+        .response-item {
+            background-color: #f7f9fc;
+            border: 1px solid #e4e8f3;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .response-item:nth-child(even) {
+            background-color: #f0f3f9;
+        }
+
+        /* Progress bar */
+        #progress-bar-container {
+            margin-top: 20px;
+            background-color: #e0e0e0;
+            border-radius: 20px;
+            overflow: hidden;
+            height: 20px;
+            width: 20%;
+        }
+
+        #progress-bar {
+            height: 100%;
+            width: 0;
+            background-color: #8a4991;
+            border-radius: 20px;
+            transition: width 0.4s ease;
+        }
+
+        /* Media Queries for Mobile Responsiveness */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            h2 {
+                font-size: 1.6rem;
+            }
+
+            button {
+                max-width: 100%;
+                padding: 10px;
+            }
+        }
+    </style>
+    <script>
+        function formatResponse(response) {
+            // Replace **text** with <strong>text</strong> for bold formatting
+            response = response.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+
+            // Replace # text with <h3>text</h3> for headers
+            response = response.replace(/^# (.*)/gm, '<h3>$1</h3>');
+
+            return response;
+        }
+
+        function sendPrompt() {
+            const prompt = document.getElementById('prompt').value;
+            if (!prompt) {
+                alert('Please enter a prompt.');
+                return;
+            }
+            document.getElementById('response').innerText = 'Processing...';
+
+            // Reset progress bar width
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = '0';
+
+            // Show loading bar animation
+            let width = 0;
+            const interval = setInterval(() => {
+                if (width >= 100) {
+                    clearInterval(interval);
+                } else {
+                    width += 10; // Increase progress by 10% for demo purposes
+                    progressBar.style.width = width + '%';
+                }
+            }, 500); // Adjust timing as needed
+
+            fetch('/generate-response', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ prompt: prompt }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.response) {
+                    // Format and display the response using the updated formatResponse function
+                    document.getElementById('response').innerHTML = formatResponse(data.response);
+
+                    // Add the new response to the previous responses section
+                    const previousResponsesDiv = document.getElementById('previous-responses');
+                    const responseItem = document.createElement('div');
+                    responseItem.className = 'response-item';
+                    responseItem.innerHTML = formatResponse(data.response);
+                    previousResponsesDiv.appendChild(responseItem);
+                } else if (data.error) {
+                    document.getElementById('response').innerText = 'Error: ' + data.error;
+                }
+            })
+            .catch((error) => {
+                clearInterval(interval); // Stop the progress bar animation
+                console.error('Error:', error);
+                document.getElementById('response').innerText = 'Error: ' + error;
+            });
+        }
+
+        function resetResponses(event) {
+            event.preventDefault(); // Prevent the form from reloading the page
+
+            // Call the reset endpoint to clear response history
+            fetch('/reset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Clear previous responses and response area
+                document.getElementById('previous-responses').innerHTML = '';
+                document.getElementById('response').innerText = '';
+
+                // Optionally display a message about the reset
+                //confirm(data.message || "Responses reset successfully");
+            })
+            .catch((error) => {
+                console.error('Error resetting responses:', error);
+                alert('Failed to reset responses: ' + error);
+            });
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <h1>Chat with GPT and Database</h1>
+        <nav>
+            <a href="/">Home</a> |
+            <a href="/about">About</a> |
+            <a href="/contact">Contact</a>
+        </nav>
+    </header>
+    <div class="container">
+        <h2>Ask a Question</h2>
+        <p>Enter your prompt below to interact with the chatbot:</p>
+        <textarea id="prompt" rows="5" placeholder="Type your prompt here..."></textarea>
+        <button id="sbt" onclick="sendPrompt()">Send</button>
+        <button onclick="resetResponses(event)">Reset Responses</button>
+
+        <!-- Progress Bar -->
+        <div id="progress-bar-container">
+            <div id="progress-bar"></div>
+        </div>
+
+        <div id="response"></div>
+
+        <div id="previous-responses"></div>
+    </div>
+</body>
+</html>
